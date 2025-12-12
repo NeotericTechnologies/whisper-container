@@ -12,7 +12,7 @@ RUN apt update -y && \
     python3-dev \
     python3-pip \
     ffmpeg
-    #wget 
+    #wget
 
 # # Set Up Cuda Repos
 # RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-ubuntu2404.pin
@@ -51,3 +51,5 @@ RUN apt clean && rm -rf /var/lib/apt/lists/*
 
 # Copy main folder into container.
 COPY ./main .
+
+RUN chmod -R ug+w /home/main

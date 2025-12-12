@@ -1,0 +1,72 @@
+name: Publish Container Images
+run-name: Publish Container ${{ inputs.tag || github.event.release.tag_name }} Images
+
+on:
+  release:
+    types: [published, edited]
+
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Optional - The branch, tag or SHA to checkout.'
+        required: false
+        type: string
+      platforms:
+        description: 'Platforms - Comma separated list of the platforms to support.'
+        required: true
+        default: linux/amd64
+        type: string
+
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+      platforms:
+        required: true
+        default: linux/amd64
+        type: string
+
+# Ensure only the most recent workflow runs.
+concurrency:
+  group: publish-container-images
+  cancel-in-progress: true
+
+jobs:
+  publish-image:
+    # Ensure this only runs on the main repository so we're not publishing images to other repositories.
+    if: ${{ github.event.repository.full_name == 'NeotericTechnologies/whisper-container' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        imageName: [whisper-container]
+        include:
+          - imageName: whisper-container
+            dockerFile: Dockerfile
+            context: .
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Lowercase repo owner
+        id: lowercase_repo_owner
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+      - name: Build and publish the image
+        uses: ./.github/actions/publish-image
+        with:
+          ref: ${{ inputs.ref || '' }}
+          registry: ghcr.io
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: ${{ matrix.dockerFile }}
+          context: ${{ matrix.context }}
+          image_name: ${{ steps.lower.outputs.owner }}/${{ matrix.imageName }}
+          platforms: ${{ inputs.platforms || 'linux/amd64' }}
