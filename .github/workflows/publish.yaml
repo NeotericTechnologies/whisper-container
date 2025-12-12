@@ -68,5 +68,5 @@ jobs:
           registry_password: ${{ secrets.GITHUB_TOKEN }}
           dockerfile: ${{ matrix.dockerFile }}
           context: ${{ matrix.context }}
-          image_name: ${{ steps.lower.outputs.owner }}/${{ matrix.imageName }}
+          image_name: ${{ steps.lowercase_repo_owner.outputs.owner }}/${{ matrix.imageName }}
           platforms: ${{ inputs.platforms || 'linux/amd64' }}
