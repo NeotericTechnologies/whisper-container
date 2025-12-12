@@ -1,0 +1,85 @@
+name: Publish Image
+description: Publish Image
+
+inputs:
+  ref:
+    description: 'Optional - The branch, tag or SHA to checkout.'
+    required: false
+
+  registry:
+    description: The image registry to use for publishing.
+    required: true
+    default: ghcr.io
+  registry_username:
+    description: The username to use when logging into the image registry.
+    required: true
+  registry_password:
+    description: The password to use when logging into the image registry.
+    required: true
+
+  dockerfile:
+    description: The dockerfile to use for the build.
+    required: true
+  context:
+    description: The context for the build.
+    required: true
+
+  image_name:
+    description: The name of the image being published.
+    required: true
+  platforms:
+    description: 'Platforms - Comma separated list of the platforms to support.'
+    required: true
+    default: linux/amd64,linux/arm64
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout Code
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        ref: ${{ inputs.ref || '' }}
+
+    - name: Cache Docker layers
+      uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+      with:
+        images: |
+          ${{ inputs.registry }}/${{ inputs.image_name }}
+        tags: |
+          type=schedule
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+
+    - name: Log in to the Container Registry
+      uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ inputs.registry_username }}
+        password: ${{ inputs.registry_password }}
+
+    - name: Build and push to the GitHub Container Registry
+      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+      with:
+        push: true
+        context: ${{ inputs.context }}
+        file: ${{ inputs.dockerfile }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+        platforms: ${{ inputs.platforms }}
