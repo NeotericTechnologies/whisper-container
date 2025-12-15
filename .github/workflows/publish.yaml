@@ -69,6 +69,7 @@ jobs:
       - name: Build and publish the image
         uses: ./.github/actions/publish-image
         with:
+          tag: ${{ inputs.tag || '' }}
           ref: ${{ inputs.ref || '' }}
           registry: ghcr.io
           registry_username: ${{ github.actor }}
