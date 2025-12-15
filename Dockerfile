@@ -34,14 +34,16 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 RUN python3 -m pip config set global.break-system-packages true
 
 # Install python CUDA API
-RUN pip install cuda-python
+RUN pip install cuda-python==13.0.3
 
 #* Installing the version of torch we want first to override the openai-whisper dependency version.
 #* Avoids clean-up and keeps the container smaller.
-# Install torch version for CUDA 12.1
-RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Install torch version for CUDA 13.0
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+# Or explicitly using:
+# RUN pip install torch==2.9.1+cu130 torchvision==0.24.1+cu130 torchaudio==2.9.1+cu130 --index-url https://download.pytorch.org/whl/cu130
 
-# Install Whisper and Rust tools.
+# Install Whisper (20250625) and Rust tools (1.12.0).
 RUN pip install -U openai-whisper
 RUN pip install setuptools-rust
 
