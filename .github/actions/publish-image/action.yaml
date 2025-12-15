@@ -2,6 +2,9 @@ name: Publish Image
 description: Publish Image
 
 inputs:
+  tag:
+    description: Image tag
+    required: true
   ref:
     description: 'Optional - The branch, tag or SHA to checkout.'
     required: false
@@ -27,10 +30,10 @@ inputs:
   image_name:
     description: The name of the image being published.
     required: true
-  platforms:
-    description: 'Platforms - Comma separated list of the platforms to support.'
-    required: true
-    default: linux/amd64,linux/arm64
+  # platforms:
+  #   description: 'Platforms - Comma separated list of the platforms to support.'
+  #   required: true
+  #   default: 'linux/amd64,linux/arm64'
 
 runs:
   using: "composite"
@@ -40,13 +43,13 @@ runs:
       with:
         ref: ${{ inputs.ref || '' }}
 
-    - name: Cache Docker layers
-      uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+    # - name: Cache Docker layers
+    #   uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
+    #   with:
+    #     path: /tmp/.buildx-cache
+    #     key: ${{ runner.os }}-buildx-${{ github.sha }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-buildx-
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
@@ -58,12 +61,11 @@ runs:
         images: |
           ${{ inputs.registry }}/${{ inputs.image_name }}
         tags: |
-          type=schedule
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=${{ inputs.tag || github.event.release.tag_name }}
+          type=semver,pattern={{version}},value=${{ inputs.tag || github.event.release.tag_name }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.event.release.tag_name }},enable=${{ !contains(github.event.release.tag_name || inputs.tag, 'rc') }}
 
     - name: Log in to the Container Registry
       uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -80,6 +82,6 @@ runs:
         file: ${{ inputs.dockerfile }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-        platforms: ${{ inputs.platforms }}
+        # cache-from: type=local,src=/tmp/.buildx-cache
+        # cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+        # platforms: ${{ inputs.platforms }}
