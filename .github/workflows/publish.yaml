@@ -7,25 +7,32 @@ on:
 
   workflow_dispatch:
     inputs:
+      tag:
+        description: Image tag
+        required: true
+        type: string
       ref:
         description: 'Optional - The branch, tag or SHA to checkout.'
         required: false
         type: string
-      platforms:
-        description: 'Platforms - Comma separated list of the platforms to support.'
-        required: true
-        default: linux/amd64
-        type: string
+      # platforms:
+      #   description: 'Platforms - Comma separated list of the platforms to support.'
+      #   required: true
+      #   default: 'linux/amd64'
+      #   type: string
 
   workflow_call:
     inputs:
+      tag:
+        required: true
+        type: string
       ref:
         required: false
         type: string
-      platforms:
-        required: true
-        default: linux/amd64
-        type: string
+      # platforms:
+      #   required: true
+      #   default: 'linux/amd64'
+      #   type: string
 
 # Ensure only the most recent workflow runs.
 concurrency:
@@ -69,4 +76,4 @@ jobs:
           dockerfile: ${{ matrix.dockerFile }}
           context: ${{ matrix.context }}
           image_name: ${{ steps.lowercase_repo_owner.outputs.owner }}/${{ matrix.imageName }}
-          platforms: ${{ inputs.platforms || 'linux/amd64' }}
+          # platforms: ${{ inputs.platforms || 'linux/amd64' }}
